@@ -1,0 +1,52 @@
+#!/bin/bash
+
+CONFIG_PATH="$HOME/.config/dfhub/paper-install"
+
+if [[ ! -f $CONFIG_PATH ]]; then
+    read -p "JDK 8 path: " jdk8
+    read -p "JDK 17 path: " jdk17
+    read -p "JDK 21 path: " jdk21
+    read -p "Installation path: " base_path
+    mkdir -p "$HOME/.config/dfhub"
+    echo -e "$jdk8\n$jdk17\n$jdk21\n$base_path" > $CONFIG_PATH
+else
+    jdk8=$(sed -n 1p $CONFIG_PATH)
+    jdk17=$(sed -n 2p $CONFIG_PATH)
+    jdk21=$(sed -n 3p $CONFIG_PATH)
+    base_path=$(sed -n 4p $CONFIG_PATH)
+fi
+
+mkdir -p "$base_path/versions" > /dev/null
+cd $base_path
+
+if [[ -z $1 ]]; then
+    echo "JDK is not specified!"
+    exit 0
+elif [[ $1 == "8" ]]; then
+    jdk=$jdk8
+elif [[ $1 == "17" ]]; then
+    jdk=$jdk17
+elif [[ $1 == "21" ]]; then
+    jdk=$jdk21
+else
+    jdk="java"
+fi
+
+if [[ -z $2 ]]; then
+    echo "Game version is not specified!"
+    exit 0
+fi
+
+if [[ ! -d "versions/$2" ]]; then
+    echo "Version $2 not found. Installing..."
+    url=$(curl -s https://qing762.is-a.dev/api/papermc/versions/$2 | jq -r ".url")
+    mkdir "versions/$2"
+    cd "versions/$2"
+    curl -o server.jar "$url"
+    echo "Signing EULA"
+    echo "eula=true" > eula.txt
+    echo "Installed"
+fi
+
+cd "versions/$2" > /dev/null 2>/dev/null
+"$jdk/bin/java" -jar server.jar
